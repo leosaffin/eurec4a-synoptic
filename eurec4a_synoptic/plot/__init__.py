@@ -29,15 +29,25 @@ def roll_lons(ds):
     return ds.assign(longitude=((ds.longitude + 180) % 360) - 180)
 
 
-def mslp_overlay(ax, mslp, levels=np.arange(958, 1024 + 6, 6)):
+def mslp_overlay(ax, mslp, lmin=952, lmax=1024, small_step=1, big_step=6):
+    ax.contour(
+        mslp.longitude,
+        mslp.latitude,
+        mslp,
+        range(lmin, lmax + small_step, small_step),
+        colors="k",
+        linewidths=0.5,
+        transform=transform,
+    )
     lines = ax.contour(
         mslp.longitude,
         mslp.latitude,
         mslp,
-        levels,
+        range(lmin, lmax + big_step, big_step),
         transform=transform,
         colors="k",
-        linewidths=2,
+        linewidths=1.5,
+        linestyles="--",
     )
     clabels = ax.clabel(lines, inline=False, fontsize=5, fmt=lambda x: f"{x:.0f} hPa")
     for txt in clabels:
