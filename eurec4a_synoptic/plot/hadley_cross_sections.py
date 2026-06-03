@@ -1,0 +1,207 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from . import label_axes, roll_lons
+
+
+def main():
+    topo = xr.load_dataarray("mean_sfp_1979-2023.nc")
+    m_y = xr.open_dataarray("m_y_eureca.nc")
+    u_y = xr.open_dataarray("u_y_eureca.nc")
+    omega_y = xr.open_dataarray("omega_y_eureca.nc")
+
+    ds = xr.Dataset({"m_y": m_y, "u_y": u_y, "omega_y": omega_y})
+    ds = roll_lons(ds)
+    ds = ds.rename({"pressure_level": "level"})
+
+    fig, axes = plt.subplot_mosaic(
+        """
+        1111-2222
+        1111-2222
+        1111-2222
+        1111-2222
+        wwww-xxxx
+        3333-4444
+        3333-4444
+        3333-4444
+        3333-4444
+        yyyy-zzzz
+        acccccccb
+        """,
+        figsize=(8, 6),
+    )
+    for ax in ["-", "a", "b", "x", "y", "z", "w"]:
+        axes[ax].set_axis_off()
+
+    for n, time in enumerate(pd.to_datetime(ds.valid_time.values), start=1):
+        ax = axes[str(n)]
+        contour = plot_single_hadley(
+            ds.sel(valid_time=time),
+            ax,
+            -60,
+            -40,
+            5,
+            1,
+            "seismic",
+            0.05,
+            41,
+            topo=topo,
+            add_key=n == 1,
+        )
+        ax.set_title(time.strftime("%Y-%m-%d %H:%M UTC"))
+        ax.set_xlim(-40, 40)
+
+        if n % 2 == 0:
+            ax.set_yticklabels([])
+        if n < 3:
+            ax.set_xticklabels([])
+
+    plt.colorbar(contour, cax=axes["c"], orientation="horizontal", label="")
+    label_axes([axes[str(n)] for n in range(1, 4 + 1)])
+
+    plt.show()
+    plt.savefig("eureca_regionalhadleycirc_individualtimes")
+
+
+def cut_topo(ds, surface_pressure):
+    """
+    Masks out values where the pressure level is above the surface pressure
+    (i.e., underneath the topography).
+
+    Parameters:
+    ds (xr.Dataset): Dataset containing variables on pressure levels
+        (dimensions: level, latitude, longitude).
+    surface_pressure (xr.DataArray): Mean surface pressure (hPa) with dimensions
+        (latitude, longitude).
+    pressure_levels (list): List of pressure levels in hPa (e.g., [850, 700, 500]).
+
+    Returns:
+    xr.Dataset: Masked dataset where values below topography are set to NaN.
+    """
+    ds_masked = ds.copy()
+
+    pressure_levels = ds.level
+
+    for p_level in pressure_levels:
+        mask = (
+            surface_pressure < p_level
+        )  # True where p_surf is less than pressure level (masked out)
+        ds_masked.loc[dict(level=p_level)] = ds.loc[dict(level=p_level)].where(~mask)
+
+    return ds_masked
+
+
+def lambda_average(lon1, lon2, A):
+    from scipy.integrate import simpson
+
+    dlamda = np.deg2rad(lon2) - np.deg2rad(lon1)
+    subset = A.sel(longitude=slice(lon1, lon2))
+    subset_lambda = np.deg2rad(subset.longitude)
+    A_limited = simpson(subset, subset_lambda) / dlamda
+    A_limited = xr.DataArray(
+        A_limited,
+        coords=A.sel(longitude=lon1).coords,
+        dims=A.sel(longitude=lon1).dims,
+        attrs=A.sel(longitude=lon1).attrs,
+        name="limited",
+    )
+    return A_limited
+
+
+def plot_single_hadley(
+    ds,
+    ax,
+    lon1,
+    lon2,
+    skip,
+    vskip,
+    cmap,
+    vmax,
+    num_colors,
+    topo,
+    scale=1e3,
+    add_key=False,
+):
+    u_limited = lambda_average(lon1, lon2, ds["u_y"])
+    omega_lim = lambda_average(lon1, lon2, ds["omega_y"])
+    mx_y_limited = lambda_average(lon1, lon2, ds["m_y"])
+
+    topo = topo.assign_coords(longitude=((topo.longitude + 180) % 360 - 180))
+    u_limited = cut_topo(
+        u_limited, topo.sel(longitude=slice(lon1, lon2)).min(dim="longitude") / 100
+    )
+    omega_lim = cut_topo(
+        omega_lim, topo.sel(longitude=slice(lon1, lon2)).min(dim="longitude") / 100
+    )
+    mx_y_limited = cut_topo(
+        mx_y_limited, topo.sel(longitude=slice(lon1, lon2)).min(dim="longitude") / 100
+    )
+
+    vmin = -vmax
+    levels = np.linspace(vmin, vmax, num_colors)
+    contour = ax.contourf(
+        mx_y_limited.latitude,
+        mx_y_limited.level,
+        mx_y_limited,
+        levels=levels,
+        cmap=cmap,
+    )
+
+    ax.contour(
+        mx_y_limited.latitude,
+        mx_y_limited.level,
+        mx_y_limited,
+        levels=[0],
+        colors="black",
+        linewidths=1,
+    )
+
+    q = ax.quiver(
+        mx_y_limited.latitude[::skip],
+        mx_y_limited.level[::vskip],
+        u_limited[::vskip, ::skip] * 0.05,
+        -1 * omega_lim[::vskip, ::skip] * 5e2,
+        scale=scale,
+    )
+
+    if add_key:
+        ax.quiverkey(q, 1.15, 0.75, 50, f"{2.5} " + "m s$^{-1}$")
+        ax.quiverkey(q, 1.15, 0.25, 50, f"{10} " + "hPa s$^{-1}$", angle=90)
+
+    ax.invert_yaxis()
+    ax.set_yscale("log")
+    ax.minorticks_off()
+    xticks = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80]
+    yticks = [100, 200, 300, 500, 700, 1000]
+    ax.set_yticks([100, 200, 300, 500, 700, 1000])
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(
+        [
+            "80S",
+            "70S",
+            "60S",
+            "50S",
+            "40S",
+            "30S",
+            "20S",
+            "10S",
+            "0",
+            "10N",
+            "20N",
+            "30N",
+            "40N",
+            "50N",
+            "60N",
+            "70N",
+            "80N",
+        ]
+    )
+    ax.set_yticklabels([str(p) for p in yticks])
+
+    return contour
+
+
+if __name__ == "__main__":
+    main()
