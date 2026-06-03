@@ -1,0 +1,18 @@
+[project]
+name = "eurec4a-synoptic"
+version = "0.1.0"
+authors = [
+  { name="Leo Saffin", email="l.saffin@reading.ac.uk" },
+]
+dependencies = [
+    "eurec4a[data]",
+    "numpy",
+    "xarray<2024.0.0",
+    "pandas",
+    "matplotlib",
+    "cartopy",
+    "cmcrameri",
+    "scitools-iris",
+    "goes2go",
+    "h5py",
+]
