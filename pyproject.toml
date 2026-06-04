@@ -7,7 +7,8 @@ authors = [
 dependencies = [
     "eurec4a[data]",
     "numpy",
-    "xarray<2024.0.0",
+    
+    "xarray<2024.9.0",
     "pandas",
     "matplotlib",
     "cartopy",
