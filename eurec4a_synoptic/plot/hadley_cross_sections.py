@@ -58,11 +58,14 @@ def main():
         if n < 3:
             ax.set_xticklabels([])
 
-    plt.colorbar(contour, cax=axes["c"], orientation="horizontal", label="")
+    plt.colorbar(
+        contour, cax=axes["c"], orientation="horizontal", label="kg m$^2$ s$^{-1}$"
+    )
+    fig.text(0.01, 0.5, "Pressure (hPa)", rotation="vertical", va="center")
     label_axes([axes[str(n)] for n in range(1, 4 + 1)])
 
+    plt.savefig("hadley_cross_sections.pdf")
     plt.show()
-    plt.savefig("eureca_regionalhadleycirc_individualtimes")
 
 
 def cut_topo(ds, surface_pressure):
