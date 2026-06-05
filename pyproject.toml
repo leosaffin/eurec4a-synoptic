@@ -7,7 +7,7 @@ authors = [
 dependencies = [
     "eurec4a[data]",
     "numpy",
-    
+    # Unable to load C3ONTEXT data in with newer versions of xarray
     "xarray<2024.9.0",
     "pandas",
     "matplotlib",
