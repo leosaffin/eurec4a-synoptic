@@ -240,7 +240,7 @@ def plot_skewt(skewt, time):
 
     skewt.ax.legend(loc="upper right")
     skewt.ax.set_xlim(-40, 30)
-    skewt.ax.set_ylim(-1050, 250)
+    skewt.ax.set_ylim(1050, 250)
     skewt.ax.set_xlabel(r"Temperature ($^{\circ}$C)")
     skewt.ax.set_ylabel("Pressure (hPa)")
     skewt.ax.set_title("Grantley Adams Sounding")

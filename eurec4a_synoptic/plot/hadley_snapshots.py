@@ -4,6 +4,7 @@ import pandas as pd
 import xarray as xr
 
 from . import (
+    snapshot_times,
     mslp_overlay,
     add_halo_circle,
     projection,
@@ -17,11 +18,12 @@ from . import (
 def main():
     # Four maps
     vmax = 0.1
-    vmin = -vmax
-    levels = np.linspace(vmin, vmax, 41)
 
-    ds = xr.open_dataset("m_y_eureca.nc").sel(pressure_level=500)
-    ds = roll_lons(ds).__xarray_dataarray_variable__
+    ds = xr.open_dataset(
+        "daily_m_y-u_y-omega_y-global_allplev-2020-01-20_2020-02-20.nc"
+    )
+    ds = ds.sel(time=snapshot_times, level=500)
+    ds = roll_lons(ds)
 
     mslp = xr.open_dataset("era5_eurec4a.nc").msl / 100
 
@@ -40,23 +42,20 @@ def main():
     for ax in ["w", "x", "y", "z"]:
         axes[ax].set_axis_off()
 
-    for i, time in enumerate(pd.to_datetime(ds.valid_time.values), start=1):
+    for i, time in enumerate(pd.to_datetime(snapshot_times), start=1):
         print(time)
-        mean_eureca_1d = ds.sel(valid_time=time)
-
-        print(mean_eureca_1d.values.min(), mean_eureca_1d.values.max())
+        mean_eureca_1d = ds.sel(time=time)
 
         ax = plt.axes(axes[str(i)])
-
-        im = ax.contourf(
+        im = ax.pcolormesh(
             mean_eureca_1d.longitude,
             mean_eureca_1d.latitude,
-            mean_eureca_1d,
+            mean_eureca_1d.m_y,
             transform=transform,
-            levels=levels,
+            vmin=-vmax,
+            vmax=vmax,
             cmap="seismic",
         )
-
         add_halo_circle(ax, transform=transform)
         ax.coastlines(resolution="10m")
 
@@ -75,9 +74,16 @@ def main():
 
         ax.set_title(time.strftime("%Y-%m-%d %H:%M UTC"))
 
-    plt.colorbar(im, cax=axes["c"], orientation="horizontal", label="kg m$^2$ s$^{-1}$")
+    plt.colorbar(
+        im,
+        cax=axes["c"],
+        orientation="horizontal",
+        label="kg m$^2$ s$^{-1}$",
+        extend="both",
+    )
     label_axes([axes[str(n)] for n in range(1, 4 + 1)])
     plt.savefig("hadley_snapshots.pdf")
+    plt.show()
 
 
 if __name__ == "__main__":

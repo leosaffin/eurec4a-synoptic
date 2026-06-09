@@ -3,18 +3,15 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from . import label_axes, roll_lons
+from . import snapshot_times, label_axes, roll_lons
 
 
 def main():
     topo = xr.load_dataarray("mean_sfp_1979-2023.nc")
-    m_y = xr.open_dataarray("m_y_eureca.nc")
-    u_y = xr.open_dataarray("u_y_eureca.nc")
-    omega_y = xr.open_dataarray("omega_y_eureca.nc")
-
-    ds = xr.Dataset({"m_y": m_y, "u_y": u_y, "omega_y": omega_y})
+    ds = xr.open_dataset(
+        "daily_m_y-u_y-omega_y-global_allplev-2020-01-20_2020-02-20.nc"
+    ).sel(time=snapshot_times)
     ds = roll_lons(ds)
-    ds = ds.rename({"pressure_level": "level"})
 
     fig, axes = plt.subplot_mosaic(
         """
@@ -35,10 +32,10 @@ def main():
     for ax in ["-", "a", "b", "x", "y", "z", "w"]:
         axes[ax].set_axis_off()
 
-    for n, time in enumerate(pd.to_datetime(ds.valid_time.values), start=1):
+    for n, time in enumerate(pd.to_datetime(snapshot_times), start=1):
         ax = axes[str(n)]
-        contour = plot_single_hadley(
-            ds.sel(valid_time=time),
+        im = plot_single_hadley(
+            ds.sel(time=time),
             ax,
             -60,
             -40,
@@ -46,7 +43,6 @@ def main():
             1,
             "seismic",
             0.05,
-            41,
             topo=topo,
             add_key=n == 1,
         )
@@ -59,9 +55,13 @@ def main():
             ax.set_xticklabels([])
 
     plt.colorbar(
-        contour, cax=axes["c"], orientation="horizontal", label="kg m$^2$ s$^{-1}$"
+        im,
+        cax=axes["c"],
+        orientation="horizontal",
+        label="kg m$^2$ s$^{-1}$",
+        extend="both",
     )
-    fig.text(0.01, 0.5, "Pressure (hPa)", rotation="vertical", va="center")
+    fig.text(0.05, 0.55, "Pressure (hPa)", rotation="vertical", va="center")
     label_axes([axes[str(n)] for n in range(1, 4 + 1)])
 
     plt.savefig("hadley_cross_sections.pdf")
@@ -122,7 +122,6 @@ def plot_single_hadley(
     vskip,
     cmap,
     vmax,
-    num_colors,
     topo,
     scale=1e3,
     add_key=False,
@@ -142,13 +141,12 @@ def plot_single_hadley(
         mx_y_limited, topo.sel(longitude=slice(lon1, lon2)).min(dim="longitude") / 100
     )
 
-    vmin = -vmax
-    levels = np.linspace(vmin, vmax, num_colors)
-    contour = ax.contourf(
+    im = ax.pcolormesh(
         mx_y_limited.latitude,
         mx_y_limited.level,
         mx_y_limited,
-        levels=levels,
+        vmin=-vmax,
+        vmax=vmax,
         cmap=cmap,
     )
 
@@ -170,8 +168,8 @@ def plot_single_hadley(
     )
 
     if add_key:
-        ax.quiverkey(q, 1.15, 0.75, 50, f"{2.5} " + "m s$^{-1}$")
-        ax.quiverkey(q, 1.15, 0.25, 50, f"{10} " + "hPa s$^{-1}$", angle=90)
+        ax.quiverkey(q, 1.15, 0.75, 50, f"{10} " + "m s$^{-1}$")
+        ax.quiverkey(q, 1.15, 0.25, -50, f"{10} " + "hPa s$^{-1}$", angle=90)
 
     ax.invert_yaxis()
     ax.set_yscale("log")
@@ -203,7 +201,7 @@ def plot_single_hadley(
     )
     ax.set_yticklabels([str(p) for p in yticks])
 
-    return contour
+    return im
 
 
 if __name__ == "__main__":

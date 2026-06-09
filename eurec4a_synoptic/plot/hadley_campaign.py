@@ -16,8 +16,6 @@ from .hadley_cross_sections import plot_single_hadley
 
 def main():
     vmax = 0.01
-    vmin = -vmax
-    levels = np.linspace(vmin, vmax, 41)
 
     ds = xr.open_dataset("era5_eurec4a.nc")
     mean_mslp = ds.msl.mean(dim="time").compute() / 100
@@ -48,12 +46,13 @@ def main():
         (axes["1"], mean_eureca.m_y.sel(level=500)),
         (axes["2"], mean_eureca.m_y.sel(level=500) - data.m_y),
     ]:
-        contour = ax.contourf(
+        im = ax.pcolormesh(
             da.longitude,
             da.latitude,
             da,
             transform=transform,
-            levels=levels,
+            vmin=-vmax,
+            vmax=vmax,
             cmap="seismic",
         )
 
@@ -67,7 +66,7 @@ def main():
 
     axes["1"].plot()
 
-    contour = plot_single_hadley(
+    im = plot_single_hadley(
         mean_eureca,
         axes["3"],
         lon1=-60,
@@ -75,13 +74,12 @@ def main():
         skip=5,
         vskip=1,
         cmap="seismic",
-        vmax=0.01,
-        num_colors=41,
+        vmax=vmax,
         topo=topo,
         add_key=True,
     )
     axes["3"].set_xlim(-40, 40)
-    plt.colorbar(contour, cax=axes["b"], label="kg m$^2$ s$^{-1}$")
+    plt.colorbar(im, cax=axes["b"], label="kg m$^2$ s$^{-1}$", extend="both")
 
     axes["3"].set_ylabel("Pressure (hPa)")
     axes["1"].set_title("EUREC$^4$A Mean\n(20th Jan - 20th Feb)")

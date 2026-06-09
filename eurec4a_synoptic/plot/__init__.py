@@ -11,6 +11,10 @@ transform = PlateCarree()
 
 extent = [-75, 0, 0, 40]
 
+snapshot_times = np.array(
+    ["2020-01-22", "2020-01-27", "2020-02-05", "2020-02-12"], dtype="datetime64"
+)
+
 
 def label_axes(axes, xpos=0.01, ypos=1.025):
     for n, ax in enumerate(axes):
@@ -29,7 +33,7 @@ def roll_lons(ds):
     return ds.assign(longitude=((ds.longitude + 180) % 360) - 180)
 
 
-def mslp_overlay(ax, mslp, lmin=952, lmax=1024, small_step=1, big_step=6):
+def mslp_overlay(ax, mslp, lmin=952, lmax=1040, small_step=1, big_step=6):
     ax.contour(
         mslp.longitude,
         mslp.latitude,
