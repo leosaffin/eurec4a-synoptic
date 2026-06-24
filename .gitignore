@@ -4,6 +4,7 @@
 *.png
 *.pdf
 !synoptic_charts/*/*
+!snapshots/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
