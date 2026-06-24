@@ -3,6 +3,7 @@
 *.csv
 *.png
 *.pdf
+!synoptic_charts/*/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
