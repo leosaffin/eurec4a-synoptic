@@ -48,9 +48,9 @@ def main():
 
         ax = plt.axes(axes[str(i)])
         im = ax.pcolormesh(
-            mean_eureca_1d.longitude,
-            mean_eureca_1d.latitude,
-            mean_eureca_1d.m_y,
+            mean_eureca_1d.longitude[::4],
+            mean_eureca_1d.latitude[::4],
+            mean_eureca_1d.m_y[::4, ::4],
             transform=transform,
             vmin=-vmax,
             vmax=vmax,
@@ -72,7 +72,7 @@ def main():
 
         mslp_overlay(ax, mslp.sel(time=time))
 
-        ax.set_title(time.strftime("%Y-%m-%d %H:%M UTC"))
+        ax.set_title(time.strftime("%Y-%m-%d"))
 
     plt.colorbar(
         im,

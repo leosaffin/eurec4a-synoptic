@@ -189,7 +189,7 @@ def plot_goes(ax, time):
     ax.set_extent([-60, -30, 7.5, 25], crs=transform)
     ax.coastlines(resolution="10m")
 
-    add_halo_circle(ax, transform=transform)
+    add_halo_circle(ax, transform=transform, fill=False)
 
 
 def get_TrueColor_RGB(C):

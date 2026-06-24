@@ -39,14 +39,15 @@ def main():
             ax,
             -60,
             -40,
-            5,
-            1,
-            "seismic",
-            0.05,
+            skip=10,
+            vskip=2,
+            cmap="seismic",
+            vmax=0.05,
             topo=topo,
+            scale=1e3,
             add_key=n == 1,
         )
-        ax.set_title(time.strftime("%Y-%m-%d %H:%M UTC"))
+        ax.set_title(time.strftime("%Y-%m-%d"))
         ax.set_xlim(-40, 40)
 
         if n % 2 == 0:
@@ -159,6 +160,15 @@ def plot_single_hadley(
         linewidths=1,
     )
 
+    # Grey out orography
+    ax.contourf(
+        mx_y_limited.latitude,
+        mx_y_limited.level,
+        np.where(np.isnan(mx_y_limited), 0, np.nan),
+        levels=[0, 1],
+        colors="grey",
+    )
+
     q = ax.quiver(
         mx_y_limited.latitude[::skip],
         mx_y_limited.level[::vskip],
@@ -168,8 +178,8 @@ def plot_single_hadley(
     )
 
     if add_key:
-        ax.quiverkey(q, 1.15, 0.75, 50, f"{10} " + "m s$^{-1}$")
-        ax.quiverkey(q, 1.15, 0.25, -50, f"{10} " + "hPa s$^{-1}$", angle=90)
+        ax.quiverkey(q, 1.15, 0.75, 25, f"{5} " + "m s$^{-1}$")
+        ax.quiverkey(q, 1.15, 0.25, -25, f"{5} " + "hPa s$^{-1}$", angle=90)
 
     ax.invert_yaxis()
     ax.set_yscale("log")

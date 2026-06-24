@@ -47,9 +47,9 @@ def main():
         (axes["2"], mean_eureca.m_y.sel(level=500) - data.m_y),
     ]:
         im = ax.pcolormesh(
-            da.longitude,
-            da.latitude,
-            da,
+            da.longitude[::4],
+            da.latitude[::4],
+            da[::4, ::4],
             transform=transform,
             vmin=-vmax,
             vmax=vmax,
@@ -71,11 +71,12 @@ def main():
         axes["3"],
         lon1=-60,
         lon2=-40,
-        skip=5,
-        vskip=1,
+        skip=10,
+        vskip=2,
         cmap="seismic",
         vmax=vmax,
         topo=topo,
+        scale=5e2,
         add_key=True,
     )
     axes["3"].set_xlim(-40, 40)
